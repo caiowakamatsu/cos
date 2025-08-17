@@ -1,0 +1,23 @@
+Stage 0: Real mode
+Primary goal of stage 0 is to load stage 1 and give us a "sane" 16 bit environment (How sane can that be anyways though...)
+- Setup segment registers / Stack
+- Load stage 1 into memory
+- Jump to stage 1
+
+Stage 1: Real mode
+Primary goal here is to do all the bootstraping required for data that we can't get without interrupts, then jump to 32 bit mode)
+- Query / Load memory map E820h)
+- Query / set VBE
+- Prepare boot info struct
+- Disable ints
+- Load stage 2
+
+Stage 2: Protected mode
+Primary goal is to prepare the environment for the kernel to run
+- Setup initial page tables (Recursive mapping)
+- Prepare everything required for long mode 
+- 64 bit jump BABYYYYYY
+
+
+Kernel: Long mode
+This is where the fun begins...
