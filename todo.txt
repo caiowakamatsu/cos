@@ -1,7 +1,8 @@
 Stage 0: Real mode
 Primary goal of stage 0 is to load stage 1 and give us a "sane" 16 bit environment (How sane can that be anyways though...)
-- Setup segment registers / Stack
+- Setup segment registers / Stack (0x7BFF)
 - Load stage 1 into memory
+- A20 line
 - Jump to stage 1
 
 Stage 1: Real mode
