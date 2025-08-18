@@ -1,7 +1,8 @@
+bits 16
 org 0x7C00           ; BIOS loads boot sector here
 
 start:
-    cli ; Disable ints   
+
     xor ax, ax ; Setup stack stuff
     mov ds, ax
     mov es, ax
@@ -10,10 +11,59 @@ start:
 		sti ; Enable ints
 
 		call enable_a20
+		call load_stage1
+		jmp 0x0:0x8000
+
+print_halted:
+    mov si, halted_msg
+.print_loop:
+    lodsb               ; Load byte from DS:SI into AL, increment SI
+    cmp al, 0
+    je .done
+    mov ah, 0x0E        ; BIOS teletype function
+    mov bh, 0           ; page 0
+    mov bl, 0x07        ; normal attribute
+    int 0x10
+    jmp .print_loop
+.done:
+    ret
+
+halted_msg:
+	db "HALTED" 0
 
 hang:
+		call print_halted
     hlt
     jmp hang             ; infinite loop
+
+%include "boot/common.asm"
+
+load_stage1:
+	; dl is already loaded by BIOS (thank you)
+
+	; Load starting from sector 1
+	mov ax, 0 ; High bit 0
+	push ax
+	mov ax, 1 ; Low bit 1
+	push ax
+
+	; Offset
+	mov ax, 0
+	push ax
+
+	; Segment is 0 
+	xor ax, 0x8000
+	push ax
+
+	; Number of sectors to read
+	mov ax, STAGE1_SECTOR_COUNT
+	push ax
+
+	call read_lba
+	jc hang
+
+load_stage1__exit:
+	ret
 
 ; Tries to enable the A20 line
 enable_a20:
@@ -78,7 +128,7 @@ check_a20__exit:
 
 	ret
 
-msg db "Hello from Stage 1!",0
+msg db "Hello from Stage 0!",0
 
 ; Footer stuff required for binary bullshittery
 times 510-($-$$) db 0
