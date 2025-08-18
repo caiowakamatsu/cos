@@ -1,5 +1,53 @@
-org 0x8000
+org 0x800
 bits 16
+
+stage1_entry:
+	; This is where VBE will be loaded
+	; This is where reserved memory regions will be loaded
+	; Load 32 bit mode code
+	call load_stage2
+	; No more interrupts
+	cli
+
+	; Load GDT
+	lgdt [gdtr]
+	; Enable protected mode CR0
+	mov eax, cr0
+	or eax, 1 ; enable protected mode 
+	mov cr0, eax
+	jmp 0x08:0x8000
+	; Off to protected mode we goooooo
+
+%include "boot/common.asm"
+%include "boot/gdt.asm"
+
+load_stage2:
+	; Sector starts at STAGE2_SECTOR_START (which is... hopefully under 2^16)
+	mov ax, 0
+	push ax
+	mov ax, STAGE2_SECTOR_START
+	push ax
+
+	; Segment
+	mov ax, 0
+	push ax
+
+	; Offset
+	mov ax, 0x8000
+	push ax
+
+	; Number of sectors to read
+	mov ax, STAGE2_SECTOR_COUNT
+	push ax
+
+	call read_lba
+	jc hang
+	ret
+
+hang:
+	call print_halted
+	hlt
+	jmp hang
 
 print_halted:
     mov si, halted_msg
@@ -20,7 +68,7 @@ halted_msg:
 
 ;---------------------------------
 ; Data section
-msg db "Hi from stage 1", 0
+msg db "stage 1 - end", 0
 
 
 times 512-($-$$) db 0

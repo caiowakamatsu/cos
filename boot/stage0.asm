@@ -12,7 +12,7 @@ start:
 
 		call enable_a20
 		call load_stage1
-		jmp 0x0:0x8000
+		jmp 0x0:0x800
 
 print_halted:
     mov si, halted_msg
@@ -29,7 +29,7 @@ print_halted:
     ret
 
 halted_msg:
-	db "HALTED" 0
+	dq "HALTED" 0
 
 hang:
 		call print_halted
@@ -47,12 +47,12 @@ load_stage1:
 	mov ax, 1 ; Low bit 1
 	push ax
 
-	; Offset
+	; Segment
 	mov ax, 0
 	push ax
 
-	; Segment is 0 
-	xor ax, 0x8000
+	; Offset is 0 
+	mov ax, 0x800
 	push ax
 
 	; Number of sectors to read
@@ -128,7 +128,7 @@ check_a20__exit:
 
 	ret
 
-msg db "Hello from Stage 0!",0
+msg db "stage 0 - end",0
 
 ; Footer stuff required for binary bullshittery
 times 510-($-$$) db 0
