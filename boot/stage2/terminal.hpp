@@ -16,18 +16,72 @@ public:
         data[index(x, y) + 1] = 0x07;
       }
     }
+    cx = 0;
+    cy = 0;
   }
 
-  void write(const char *str) {
-    cycle_up();
-    auto current_x = 0;
-    while (current_x < width && str[current_x] != 0) {
-      data[index(current_x, height - 1)] = str[current_x];
-      current_x += 1;
+  void write(char c) {
+    if (c == '\n') {
+      // New line
+      if (cy + 1 == height) {
+        cycle_up();
+      } else {
+        cy += 1;
+      }
+
+      cx = 0;
+      return;
     }
+
+    if (cx + 1 == width) {
+      // We need to go down, but what if we're already at the bottom?
+      if (cy + 1 == height) {
+        cycle_up(); // Move everything up one before writing
+      } else {
+        cy += 1;
+      }
+      cx = 0;
+    }
+
+    data[index(cx++, cy)] = c;
+  }
+
+  terminal &operator<<(const char *str) {
+    auto current = 0;
+    while (str[current] != 0) {
+      this->write(str[current++]);
+    }
+
+    return *this;
+  }
+
+  terminal &operator<<(unsigned long long number) {
+    (*this) << "0x";
+    if (number == 0) {
+      this->write('0');
+      return *this;
+    }
+
+    char buffer[16];
+    int i = 0;
+
+    while (number != 0) {
+      int digit = number & 0xF;
+      buffer[i++] = digit < 10 ? '0' + digit : 'A' + (digit - 10);
+      number >>= 4;
+    }
+
+    for (int j = i - 1; j >= 0; j--) {
+      write(buffer[j]);
+    }
+
+    return *this;
   }
 
 private:
+  char cx = 0;
+  char cy = 0;
+
   [[nodiscard]] int index(int x, int y) { return (x + y * width) * 2; }
 
   void cycle_up() {
@@ -37,6 +91,7 @@ private:
         data[index(x, y)] = ' ';
       }
     }
+    cx = 0;
   }
 
   volatile char *data = nullptr;

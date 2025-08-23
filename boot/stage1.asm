@@ -4,6 +4,8 @@ bits 16
 stage1_entry:
 	; This is where VBE will be loaded
 	; This is where reserved memory regions will be loaded
+	call load_e820
+
 	; Load 32 bit mode code
 	call load_stage2
 	; No more interrupts
@@ -18,6 +20,7 @@ stage1_entry:
 	jmp 0x08:0x8000
 	; Off to protected mode we goooooo
 
+%include "boot/memory.asm"
 %include "boot/common.asm"
 %include "boot/gdt.asm"
 
