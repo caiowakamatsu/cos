@@ -3,6 +3,7 @@
 // all programming war crimes I commit in pursuit of my goal
 #include "page_table_entry.hpp"
 #include "terminal.hpp"
+#include "x820.hpp"
 
 void print_memory_regions(cos::terminal &terminal);
 
@@ -11,21 +12,37 @@ extern "C" void stage2_main() {
 
   terminal << "Preparing to go to 64 bit mode\n";
   print_memory_regions(terminal);
-
-  /*
-terminal.write("Successfully in 32bit mode");
-terminal.write("Preparing to go to 64bit mode");
-
-volatile unsigned short *memory_entry_count =
-reinterpret_cast<unsigned short *>(0x1000);
-char o[2];
-o[0] = '0' + *memory_entry_count;
-o[1] = 0;
-terminal.write(o);*/
 }
 
 void print_memory_regions(cos::terminal &terminal) {
-  volatile unsigned short *memory_entry_count =
-      reinterpret_cast<unsigned short *>(0x1000);
+  const auto memory_entry_count = reinterpret_cast<unsigned short *>(0x1000);
   terminal << "loaded " << *memory_entry_count << " memory regions\n";
+
+  const auto x820_entries = reinterpret_cast<cos::x820_entry *>(0x1010);
+  for (int i = 0; i < *memory_entry_count; i++) {
+    const auto entry = x820_entries[i];
+
+    terminal << "Address: " << entry.base_address << "\n"
+             << "Length: " << entry.length << "\n";
+
+    terminal << "type: ";
+    switch (entry.entry_type) {
+    case cos::x820_entry_type::usable:
+      terminal << "usable";
+      break;
+    case cos::x820_entry_type::reserved:
+      terminal << "reserved";
+      break;
+    case cos::x820_entry_type::acpi_reclaimable:
+      terminal << "acpi_reclaimable";
+      break;
+    case cos::x820_entry_type::acpi_nvs:
+      terminal << "acpi_nvs";
+      break;
+    case cos::x820_entry_type::bad_memory:
+      terminal << "bad_memory";
+      break;
+    }
+    terminal << "\n";
+  }
 }
