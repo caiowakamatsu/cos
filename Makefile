@@ -13,7 +13,7 @@ OS_IMG := $(BUILD_DIR)/os.img
 all: $(OS_IMG)
 
 run: 
-	qemu-system-x86_64 -drive format=raw,file=$(OS_IMG)
+	qemu-system-x86_64 -enable-kvm -m 8G -machine q35 -cpu host -drive format=raw,file=$(OS_IMG)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)

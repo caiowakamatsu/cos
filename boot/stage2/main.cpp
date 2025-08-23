@@ -22,10 +22,9 @@ void print_memory_regions(cos::terminal &terminal) {
   for (int i = 0; i < *memory_entry_count; i++) {
     const auto entry = x820_entries[i];
 
-    terminal << "Address: " << entry.base_address << "\n"
-             << "Length: " << entry.length << "\n";
+    terminal << "A " << entry.base_address << " L " << entry.length;
 
-    terminal << "type: ";
+    terminal << "(";
     switch (entry.entry_type) {
     case cos::x820_entry_type::usable:
       terminal << "usable";
@@ -43,6 +42,6 @@ void print_memory_regions(cos::terminal &terminal) {
       terminal << "bad_memory";
       break;
     }
-    terminal << "\n";
+    terminal << ")\n";
   }
 }
