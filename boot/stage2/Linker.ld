@@ -3,7 +3,7 @@ ENTRY(stage2_main)
 
 SECTIONS
 {
-    . = 0x0;              /* load at offset 0 in binary */
+    . = 0x8000;              /* load at offset 0 in binary */
     .text : { *(.text) }
     .rodata : { *(.rodata) }
     .data : { *(.data) }

@@ -22,7 +22,7 @@ $(STAGE0): $(BUILD_DIR) boot/stage0.asm
 	nasm -f bin boot/stage0.asm -o $(STAGE0) -DSTAGE1_SECTOR_COUNT=1 # only 1 sector for now
 
 $(STAGE1): $(BUILD_DIR) boot/stage1.asm
-	nasm -f bin boot/stage1.asm -o $(STAGE1) -DSTAGE2_SECTOR_COUNT=1 -DSTAGE2_SECTOR_START=2
+	nasm -f bin boot/stage1.asm -o $(STAGE1) -DSTAGE2_SECTOR_COUNT=16 -DSTAGE2_SECTOR_START=2
 
 $(BUILD_DIR)/%.o: boot/stage2/%.cpp
 	i686-elf-g++ -ffreestanding -m32 -c $< -o $@
@@ -37,7 +37,7 @@ $(OS_IMG): $(STAGE0) $(STAGE1) $(STAGE2)
 	dd if=/dev/zero of=$(OS_IMG) bs=512 count=2880
 	dd if=$(STAGE0) of=$(OS_IMG) bs=512 count=1 conv=notrunc
 	dd if=$(STAGE1) of=$(OS_IMG) bs=512 count=1 conv=notrunc seek=1
-	dd if=$(STAGE2) of=$(OS_IMG) bs=512 count=1 conv=notrunc seek=2
+	dd if=$(STAGE2) of=$(OS_IMG) bs=512 count=16 conv=notrunc seek=2
 
 clean:
 	rm -rf $(BUILD_DIR)
