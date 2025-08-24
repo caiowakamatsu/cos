@@ -40,7 +40,7 @@ extern "C" void stage2_main() {
     while (1)
       ;
   }
-  terminal << "read kernel\n";
+  terminal << "Successfully read kernel\n";
 }
 
 cos::uint64_t calculate_required_page_count() {
