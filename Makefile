@@ -31,7 +31,7 @@ $(STAGE1): $(BUILD_DIR) boot/stage1.asm
 	nasm -f bin boot/stage1.asm -o $(STAGE1) -DSTAGE2_SECTOR_COUNT=16 -DSTAGE2_SECTOR_START=2
 
 $(BUILD_DIR)/%.o: boot/stage2/%.cpp
-	i686-elf-g++ -ffreestanding -I$(STL_DIRECTORY) -m32 -c $< -o $@
+	i686-elf-g++ -fno-unwind-tables -fno-asynchronous-unwind-tables -fno-exceptions -fno-rtti -ffreestanding -I$(STL_DIRECTORY) -m32 -c $< -o $@
 
 $(STAGE2_ENTRY): boot/stage2/entry.asm
 	nasm -f elf32 boot/stage2/entry.asm -o $(STAGE2_ENTRY)

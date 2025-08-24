@@ -4,6 +4,16 @@
 
 namespace cos {
 
+allocated_physical_page_proxy::allocated_physical_page_proxy(cos::uint8_t index,
+                                                             cos::byte *source)
+    : index(index), source(source) {}
+
+allocated_physical_page_proxy::operator cos::physical_page_status()
+    const noexcept {
+  return static_cast<physical_page_status>(((*source) >> index) &
+                                           cos::byte(0x1));
+}
+
 physical_page_status
 allocated_physical_page_proxy::operator=(physical_page_status status) noexcept {
   if (status == physical_page_status::free) {
@@ -13,6 +23,10 @@ allocated_physical_page_proxy::operator=(physical_page_status status) noexcept {
   }
 
   return status;
+}
+
+cos::uint64_t allocated_physical_pages::page_count() const noexcept {
+  return actual_page_count;
 }
 
 page_allocator::page_allocator(allocated_physical_pages *pages)
