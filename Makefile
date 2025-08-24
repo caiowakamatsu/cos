@@ -6,11 +6,17 @@ STAGE2_OBJS := $(patsubst boot/stage2/%.cpp,$(BUILD_DIR)/%.o,$(STAGE2_CPP))
 STAGE2_ENTRY := $(BUILD_DIR)/stage2_entry.o
 STAGE2 := $(BUILD_DIR)/stage2.bin
 
+
+STL_DIRECTORY := stl
+
 OS_IMG := $(BUILD_DIR)/os.img
 
-.PHONY: all run clean
+.PHONY: all run clean 
 
 all: $(OS_IMG)
+
+compile: $(BUILD_DIR) $(CLEAN)
+	bear --output build/compile_commands.json -- make
 
 run: 
 	qemu-system-x86_64 -enable-kvm -m 8G -machine q35 -cpu host -drive format=raw,file=$(OS_IMG)
@@ -25,7 +31,7 @@ $(STAGE1): $(BUILD_DIR) boot/stage1.asm
 	nasm -f bin boot/stage1.asm -o $(STAGE1) -DSTAGE2_SECTOR_COUNT=16 -DSTAGE2_SECTOR_START=2
 
 $(BUILD_DIR)/%.o: boot/stage2/%.cpp
-	i686-elf-g++ -ffreestanding -m32 -c $< -o $@
+	i686-elf-g++ -ffreestanding -I$(STL_DIRECTORY) -m32 -c $< -o $@
 
 $(STAGE2_ENTRY): boot/stage2/entry.asm
 	nasm -f elf32 boot/stage2/entry.asm -o $(STAGE2_ENTRY)
