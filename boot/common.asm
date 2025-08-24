@@ -163,20 +163,40 @@ find_entry:
 	call load_fs_metadata
 	jc .end
 
-	xor eax, eax
+	xor bh, bh ; i = 0
 	; Loop through entries until we find the one that matches the string
 .loop:
+	xor ax, ax
+	mov al, bh
+	mov bl, 8
+	div bl ; al = i / 8, ah = 1 % 8
+	xor ah, ah ; Get rid of this for eax call
 	call load_entry_metadata
 	jc .end ; Error?
-	; Compare the strings
+
+	; metadata block loaded at 0x1000 
+	; bh = i
+	; bl = i % 8
+	xor eax, eax
+	mov al, bh
+	mov bl, 8
+	div bl
+	xor al, al
+	shl ax, 6 ; al = al * 64
+
 	mov di, 0x1000
+	; Due to the entries not being sector aligned (64 byte aligned)
+	; We need to offset the loads from entries by (64 * (i % 8))
+	add di, ax ; di + 64 * (i % 8)
+
+; Compare the strings
 	pop si
 	call strcmp
 	cmp bl, 1
 	je .end
 
 	; Didn't find it, try again
-	inc eax
+	inc bh
 	jmp .loop
 
 .end_not_found:
@@ -185,8 +205,11 @@ find_entry:
 .end:
 
 	; Load parameters
-	mov ebx, [0x1000 + 32] ; Sector start
-	mov ecx, [0x1000 + 36] ; Sector count
+	mov si, ax
+	add si, 0x1000 + 32
+	mov ebx, [si] ; Sector start
+	add si, 4
+	mov ecx, [si] ; Sector count
 
 	ret
 
