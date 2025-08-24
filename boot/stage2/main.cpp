@@ -16,13 +16,15 @@ extern "C" void stage2_main() {
 
 void print_memory_regions(cos::terminal &terminal) {
   const auto memory_entry_count = reinterpret_cast<unsigned short *>(0x1000);
-  terminal << "loaded " << *memory_entry_count << " memory regions\n";
+  terminal << "loaded " << cos::decimal(*memory_entry_count)
+           << " memory regions\n";
 
   const auto x820_entries = reinterpret_cast<cos::x820_entry *>(0x1010);
   for (int i = 0; i < *memory_entry_count; i++) {
     const auto entry = x820_entries[i];
 
-    terminal << "A " << entry.base_address << " L " << entry.length;
+    terminal << "A " << cos::hex(entry.base_address) << " L "
+             << cos::memory_size(entry.length);
 
     terminal << "(";
     switch (entry.entry_type) {
