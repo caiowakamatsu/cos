@@ -1,0 +1,22 @@
+Boot drive format:
+sector[0] = Bootloader stage 0 (required)
+sector[1] = Filesystem data*
+
+Filesystem data
+{
+	uint16_t entry_count; // How many file entries do we have?
+	uint16_t consumed_sectors; // How many sectors have we written to TOTAL? (not inclusive sector[0], sector[1])
+	uint16_t total_sectors; // How many sectors does the drive actually have?
+	// Rest of the sector is reserved
+}
+
+File Entry 
+{
+	char identifier[32]; // "kernel.bin", "stage1.bin", etc...
+	uint32_t sector_start; // What sector does the file start at?
+	uint32_t sector_count; // How many sectors does the file span?
+	uint32_t entry_size; // How many bytes is the actual file?
+	uint64_t checksum; // xor hash of all bytes in file 
+	char padding[12]; // 8 entries per sector
+}
+
