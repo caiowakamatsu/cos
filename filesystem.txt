@@ -5,8 +5,7 @@ sector[1] = Filesystem data*
 Filesystem data
 {
 	uint16_t entry_count; // How many file entries do we have?
-	uint16_t consumed_sectors; // How many sectors have we written to TOTAL? (not inclusive sector[0], sector[1])
-	uint16_t total_sectors; // How many sectors does the drive actually have?
+	uint16_t consumed_sectors; // How many sectors after this one?
 	// Rest of the sector is reserved
 }
 
@@ -16,7 +15,18 @@ File Entry
 	uint32_t sector_start; // What sector does the file start at?
 	uint32_t sector_count; // How many sectors does the file span?
 	uint32_t entry_size; // How many bytes is the actual file?
-	uint64_t checksum; // xor hash of all bytes in file 
-	char padding[12]; // 8 entries per sector
+	uint8_t checksum; // xor hash of all bytes in file 
+	char padding[19]; // 8 entries per sector
 }
+
+
+------
+fs-builder
+
+A builder for the simple filesystem described above, it's python, usage is as follows
+
+fs-builder <file_descriptor0> <file_descriptor1> ... <file_descriptorN>
+
+File Descriptor:
+file_path,identifier
 
