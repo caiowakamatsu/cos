@@ -2,6 +2,7 @@
 // to 64 bit mode as soon as possible The above comment absolves me from any and
 // all programming war crimes I commit in pursuit of my goal
 #include "boot.hpp"
+#include "disk.hpp"
 #include "page_table_entry.hpp"
 #include "physical_page.hpp"
 #include "terminal.hpp"
@@ -24,6 +25,22 @@ extern "C" void stage2_main() {
   auto boot_struct = reinterpret_cast<cos::boot_info *>(
       allocator.allocate_memory(sizeof(cos::boot_info)));
   boot_struct->pages = pages;
+
+  // Find a place to put the kernel
+  const auto kernel_sector_count = 256;
+  const auto kernel_address =
+      allocator.allocate_memory(kernel_sector_count * 512);
+  terminal << "Loading kernel at "
+           << cos::hex(reinterpret_cast<cos::uint32_t>(kernel_address)) << "\n";
+  if (const auto status =
+          cos::read_from_disk(0, 1, kernel_address, false, false);
+      status != 0) {
+    terminal << "FAILED TO READ KERNEL ERR: "
+             << cos::decimal(static_cast<cos::uint32_t>(status));
+    while (1)
+      ;
+  }
+  terminal << "read kernel\n";
 }
 
 cos::uint64_t calculate_required_page_count() {
@@ -62,7 +79,9 @@ cos::byte *find_spot_for_physical_page_bitmap(cos::uint64_t space_required) {
           cos::align_up(entry.base_address, 4096); // Align to the page
       const auto aligned_space_in_entry =
           (entry.base_address + entry.length) - aligned_start;
-      if (aligned_space_in_entry >= space_required) {
+      if (aligned_space_in_entry >= space_required &&
+          aligned_start >=
+              0x10'0000) { // only load the bitmap at or higher than 1mb
         return reinterpret_cast<cos::byte *>(
             static_cast<cos::uint32_t>(aligned_start));
       }
@@ -111,8 +130,14 @@ initialize_physical_page_data(cos::terminal &terminal) {
   terminal << cos::memory_size(storage_required) << "\n";
   const auto address_for_data =
       find_spot_for_physical_page_bitmap(storage_required);
+  if (address_for_data == nullptr) {
+    terminal << "failed to find place for bitmap\n";
+    while (true)
+      ;
+  }
   terminal << "Found spot for bitmap at "
-           << cos::hex(reinterpret_cast<cos::uint32_t>(address_for_data));
+           << cos::hex(reinterpret_cast<cos::uint32_t>(address_for_data))
+           << "\n";
 
   // Time to initialize the bitmap
   auto bitmap = cos::allocated_physical_pages(address_for_data, page_count);

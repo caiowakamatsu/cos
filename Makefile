@@ -19,7 +19,7 @@ compile: $(BUILD_DIR) $(CLEAN)
 	bear --output build/compile_commands.json -- make
 
 run: 
-	qemu-system-x86_64 -enable-kvm -m 8G -machine q35 -cpu host -drive format=raw,file=$(OS_IMG)
+	qemu-system-x86_64 -enable-kvm -m 8G -machine pc -cpu host -drive if=ide,media=disk,format=raw,file=$(OS_IMG) -monitor stdio
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
