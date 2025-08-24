@@ -12,10 +12,10 @@ load_e820:
 
 	xor ax, ax
 	; Location for the entry count
-	mov [0x1000], ax
+	mov [0x1200], ax
 	; 0x0000:0x1002 for buffer location
 	mov es, ax
-	mov ax, 0x1010
+	mov ax, 0x1210
 	mov di, ax
 
 	xor ebx, ebx ; Clear EBX
@@ -27,9 +27,9 @@ load_e820:
 	jc .end
 
 	; Increment element count by 1
-	mov ax, [0x1000]
+	mov ax, [0x1200]
 	inc ax
-	mov [0x1000], ax
+	mov [0x1200], ax
 
 	; Point to the next element
 	add di, 0x18

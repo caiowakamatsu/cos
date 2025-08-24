@@ -28,6 +28,8 @@ print_halted:
 .done:
     ret
 
+stage1_identifier db "stage1.bin", 0
+
 halted_msg:
 	dq "HALTED" 0
 
@@ -39,12 +41,18 @@ hang:
 %include "boot/common.asm"
 
 load_stage1:
+	mov si, stage1_identifier
+	call find_entry
+	jc hang
+	;jmp hang
+
 	; dl is already loaded by BIOS (thank you)
 
 	; Load starting from sector 1
 	mov ax, 0 ; High bit 0
 	push ax
-	mov ax, 1 ; Low bit 1
+	mov ax, bx ; Low bit 1
+	add ax, 1
 	push ax
 
 	; Segment
@@ -56,7 +64,7 @@ load_stage1:
 	push ax
 
 	; Number of sectors to read
-	mov ax, STAGE1_SECTOR_COUNT
+	mov ax, cx
 	push ax
 
 	call read_lba

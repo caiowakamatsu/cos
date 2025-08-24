@@ -24,12 +24,17 @@ stage1_entry:
 %include "boot/common.asm"
 %include "boot/gdt.asm"
 
+
 load_stage2:
+	; Load sector2 data from filesystem
+	mov si, stage2_identifier
+	call find_entry
+	jc hang
+
 	; Sector starts at STAGE2_SECTOR_START (which is... hopefully under 2^16)
 	mov ax, 0
-	push ax
-	mov ax, STAGE2_SECTOR_START
-	push ax
+	push ax 
+	push bx
 
 	; Segment
 	mov ax, 0
@@ -40,8 +45,7 @@ load_stage2:
 	push ax
 
 	; Number of sectors to read
-	mov ax, STAGE2_SECTOR_COUNT
-	push ax
+	push cx
 
 	call read_lba
 	jc hang
@@ -53,7 +57,7 @@ hang:
 	jmp hang
 
 print_halted:
-    mov si, halted_msg
+    mov si, msg 
 .print_loop:
     lodsb               ; Load byte from DS:SI into AL, increment SI
     cmp al, 0
@@ -66,12 +70,9 @@ print_halted:
 .done:
     ret
 
-halted_msg:
-	db "HALTED" 0
-
 ;---------------------------------
 ; Data section
+stage2_identifier db "stage2.bin", 0
 msg db "stage 1 - end", 0
 
 
-times 512-($-$$) db 0
