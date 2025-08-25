@@ -9,9 +9,17 @@
 #include "types.hpp"
 #include "x820.hpp"
 
+#include <memory.hpp>
+#include <string.hpp>
+
 void print_memory_regions(cos::terminal &terminal);
 cos::allocated_physical_pages
 initialize_physical_page_data(cos::terminal &terminal);
+struct filesystem_result {
+  int sector_start = -1;
+  int sector_count = 0;
+};
+filesystem_result read_filesystem_data(const char *identifier);
 
 extern "C" void stage2_main() {
   auto terminal = cos::terminal(reinterpret_cast<char *>(0xB8000));
@@ -26,8 +34,20 @@ extern "C" void stage2_main() {
       allocator.allocate_memory(sizeof(cos::boot_info)));
   boot_struct->pages = pages;
 
+  const auto kernel_disk_location =
+      read_filesystem_data("kernel.bin"); // load ourselves for fun
+  if (kernel_disk_location.sector_start == -1) {
+    terminal << "failed to find kernel.bin in filesystem\n";
+    while (1)
+      ;
+  } else {
+    terminal << "found kernel.bin at sector "
+             << cos::hex(kernel_disk_location.sector_start) << " with length "
+             << cos::decimal(kernel_disk_location.sector_count) << "\n";
+  }
+
   // Find a place to put the kernel
-  const auto kernel_sector_count = 256;
+  const auto kernel_sector_count = kernel_disk_location.sector_count;
   const auto kernel_address =
       allocator.allocate_memory(kernel_sector_count * 512);
   terminal << "Loading kernel at "
@@ -41,6 +61,51 @@ extern "C" void stage2_main() {
       ;
   }
   terminal << "Successfully read kernel\n";
+}
+
+filesystem_result read_filesystem_data(const char *identifier) {
+  // Parse table
+  char file_data[512];
+
+  if (const auto status =
+          cos::read_from_disk(1, 1, reinterpret_cast<cos::byte *>(file_data));
+      status != 0) {
+    return {};
+  }
+
+  auto file_count = cos::uint16_t();
+  auto total_sectors = cos::uint16_t();
+  cos::memcpy(reinterpret_cast<cos::byte *>(&file_count),
+              reinterpret_cast<cos::byte *>(file_data), 2);
+  cos::memcpy(reinterpret_cast<cos::byte *>(&total_sectors),
+              reinterpret_cast<cos::byte *>(file_data + 2), 2);
+
+  for (cos::uint16_t i = 0; i < file_count; i++) {
+    const auto file_entry_sector =
+        i / 8 + 2; // 8 entries per sector, starting at sector 2
+    const auto file_entry_read_shift = 64 * (i % 8);
+
+    if (const auto status = cos::read_from_disk(
+            file_entry_sector, 1, reinterpret_cast<cos::byte *>(file_data));
+        status != 0) {
+      return {};
+    }
+
+    if (cos::streq(identifier, file_data + file_entry_read_shift)) {
+      auto result = filesystem_result();
+      cos::memcpy(
+          reinterpret_cast<cos::byte *>(&result.sector_start),
+          reinterpret_cast<cos::byte *>(file_data + file_entry_read_shift + 32),
+          4);
+      cos::memcpy(
+          reinterpret_cast<cos::byte *>(&result.sector_count),
+          reinterpret_cast<cos::byte *>(file_data + file_entry_read_shift + 36),
+          4);
+      return result;
+    }
+  }
+
+  return {};
 }
 
 cos::uint64_t calculate_required_page_count() {
