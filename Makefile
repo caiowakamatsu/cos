@@ -16,7 +16,7 @@ OS_IMG := $(BUILD_DIR)/os.img
 all: $(OS_IMG)
 
 compile: $(BUILD_DIR) $(CLEAN)
-	bear --output build/compile_commands.json -- make
+	bear --output build/compile_commands.json -- make all
 
 run: 
 	qemu-system-x86_64 -enable-kvm -m 8G -machine pc -cpu host -drive if=ide,media=disk,format=raw,file=$(OS_IMG) -monitor stdio

@@ -104,7 +104,7 @@ strcmp:
 	ret
 .different:
 	pop ax
-	mov bl, 3
+	mov bl, 0
   ret
 
 ; Load filesystem metadata
@@ -133,6 +133,7 @@ load_fs_metadata__end:
 ; Load entry metadata with name check
 ; EAX = Entry index
 load_entry_metadata:
+	push ebx
 	push eax ; be nice and dont globber 
 	push eax ; push we need to store
 	xor cx, cx
@@ -151,6 +152,7 @@ load_entry_metadata:
 
 	call read_lba
 	pop eax
+	pop ebx
 	ret
 
 ; Expects identifier name in SI
@@ -159,20 +161,19 @@ load_entry_metadata:
 ; Sets carry if error
 find_entry:
 	push si
-	; Load big filesystem metadata
-	call load_fs_metadata
-	jc .end
 
-	xor bh, bh ; i = 0
+	mov bh, 0 
+	;xor bh, bh ; i = 0
 	; Loop through entries until we find the one that matches the string
 .loop:
-	xor ax, ax
+	xor eax, eax
 	mov al, bh
 	mov bl, 8
 	div bl ; al = i / 8, ah = 1 % 8
 	xor ah, ah ; Get rid of this for eax call
+
 	call load_entry_metadata
-	jc .end ; Error?
+	jc .end_error ; Error?
 
 	; metadata block loaded at 0x1000 
 	; bh = i
@@ -181,32 +182,40 @@ find_entry:
 	mov al, bh
 	mov bl, 8
 	div bl
-	xor al, al
+	mov al, ah
+	xor ah, ah
 	shl ax, 6 ; al = al * 64
 
 	mov di, 0x1000
 	; Due to the entries not being sector aligned (64 byte aligned)
 	; We need to offset the loads from entries by (64 * (i % 8))
 	add di, ax ; di + 64 * (i % 8)
-
 ; Compare the strings
 	pop si
+	push si
 	call strcmp
 	cmp bl, 1
 	je .end
 
 	; Didn't find it, try again
 	inc bh
+
 	jmp .loop
 
 .end_not_found:
+	pop si
 	stc
 	ret 
+.end_error:
+	pop si
+	ret
 .end:
+	pop si
 
 	; Load parameters
 	mov si, ax
 	add si, 0x1000 + 32
+
 	mov ebx, [si] ; Sector start
 	add si, 4
 	mov ecx, [si] ; Sector count

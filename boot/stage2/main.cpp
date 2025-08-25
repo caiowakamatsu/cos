@@ -44,8 +44,8 @@ extern "C" void stage2_main() {
 }
 
 cos::uint64_t calculate_required_page_count() {
-  const auto memory_entry_count = *reinterpret_cast<cos::uint16_t *>(0x1000);
-  const auto e820_entries = reinterpret_cast<cos::x820_entry *>(0x1010);
+  const auto memory_entry_count = *reinterpret_cast<cos::uint16_t *>(0x1200);
+  const auto e820_entries = reinterpret_cast<cos::x820_entry *>(0x1210);
 
   // The amount of pages we keep track of start at 0
   // Then go up to the highest USABLE bit of physical memory
@@ -69,8 +69,8 @@ cos::uint64_t calculate_required_page_count() {
 }
 
 cos::byte *find_spot_for_physical_page_bitmap(cos::uint64_t space_required) {
-  const auto memory_entry_count = *reinterpret_cast<cos::uint16_t *>(0x1000);
-  const auto e820_entries = reinterpret_cast<cos::x820_entry *>(0x1010);
+  const auto memory_entry_count = *reinterpret_cast<cos::uint16_t *>(0x1200);
+  const auto e820_entries = reinterpret_cast<cos::x820_entry *>(0x1210);
 
   for (int i = 0; i < memory_entry_count; i++) {
     const auto entry = e820_entries[i];
@@ -94,8 +94,8 @@ cos::byte *find_spot_for_physical_page_bitmap(cos::uint64_t space_required) {
 
 void initialize_used_pages(cos::allocated_physical_pages pages) {
   // First, let's clear from the e820 memory map
-  const auto memory_entry_count = *reinterpret_cast<cos::uint16_t *>(0x1000);
-  const auto e820_entries = reinterpret_cast<cos::x820_entry *>(0x1010);
+  const auto memory_entry_count = *reinterpret_cast<cos::uint16_t *>(0x1200);
+  const auto e820_entries = reinterpret_cast<cos::x820_entry *>(0x1210);
   for (int i = 0; i < memory_entry_count; i++) {
     const auto entry = e820_entries[i];
     if (entry.entry_type != cos::x820_entry_type::usable) {
@@ -149,11 +149,11 @@ initialize_physical_page_data(cos::terminal &terminal) {
 }
 
 void print_memory_regions(cos::terminal &terminal) {
-  const auto memory_entry_count = reinterpret_cast<unsigned short *>(0x1000);
+  const auto memory_entry_count = reinterpret_cast<unsigned short *>(0x1200);
   terminal << "loaded " << cos::decimal(*memory_entry_count)
            << " memory regions\n";
 
-  const auto x820_entries = reinterpret_cast<cos::x820_entry *>(0x1010);
+  const auto x820_entries = reinterpret_cast<cos::x820_entry *>(0x1210);
   for (int i = 0; i < *memory_entry_count; i++) {
     const auto entry = x820_entries[i];
 

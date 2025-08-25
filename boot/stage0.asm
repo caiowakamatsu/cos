@@ -12,6 +12,7 @@ start:
 
 		call enable_a20
 		call load_stage1
+
 		jmp 0x0:0x800
 
 print_halted:
@@ -44,8 +45,6 @@ load_stage1:
 	mov si, stage1_identifier
 	call find_entry
 	jc hang
-	;jmp hang
-
 	; dl is already loaded by BIOS (thank you)
 
 	; Load starting from sector 1
@@ -53,6 +52,7 @@ load_stage1:
 	push ax
 	mov ax, bx ; Low bit 1
 	add ax, 1
+	mov [0x1000], ax
 	push ax
 
 	; Segment
@@ -65,6 +65,7 @@ load_stage1:
 
 	; Number of sectors to read
 	mov ax, cx
+	mov [0x1010], ax
 	push ax
 
 	call read_lba

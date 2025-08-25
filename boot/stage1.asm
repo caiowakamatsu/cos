@@ -33,8 +33,10 @@ load_stage2:
 
 	; Sector starts at STAGE2_SECTOR_START (which is... hopefully under 2^16)
 	mov ax, 0
-	push ax 
-	push bx
+	push ax
+	mov ax, bx
+	add ax, 1
+	push ax
 
 	; Segment
 	mov ax, 0
@@ -45,7 +47,8 @@ load_stage2:
 	push ax
 
 	; Number of sectors to read
-	push cx
+	mov ax, cx
+	push ax
 
 	call read_lba
 	jc hang
