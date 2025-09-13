@@ -3,13 +3,13 @@
 
 #include <types.hpp>
 
-namespace cos {
-static inline void memcpy(cos::byte *dst, cos::byte *src, cos::uint64_t len) {
-  for (cos::uint64_t i = 0; i < len; i++) {
-    dst[i] = src[i];
-  }
+namespace std {
+static inline void memcpy(std::byte *dst, std::byte *src, std::uint64_t len) {
+	for (std::uint64_t i = 0; i < len; i++) {
+		dst[i] = src[i];
+	}
 }
 
-} // namespace cos
+}  // namespace std
 
 #endif
