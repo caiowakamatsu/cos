@@ -52,7 +52,6 @@ load_stage1:
 	push ax
 	mov ax, bx ; Low bit 1
 	add ax, 1
-	mov [0x1000], ax
 	push ax
 
 	; Segment
@@ -65,7 +64,6 @@ load_stage1:
 
 	; Number of sectors to read
 	mov ax, cx
-	mov [0x1010], ax
 	push ax
 
 	call read_lba

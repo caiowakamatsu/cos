@@ -9,6 +9,7 @@ static inline void memcpy(cos::byte *dst, cos::byte *src, cos::uint64_t len) {
     dst[i] = src[i];
   }
 }
+
 } // namespace cos
 
 #endif

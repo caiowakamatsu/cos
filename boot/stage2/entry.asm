@@ -7,7 +7,7 @@ stage2_entry:
 	mov fs, ax
 	mov gs, ax
 	mov ss, ax
-	mov esp, 0x90000
+	mov esp, 0x200000
 	call stage2_main        
 .hang:
 	jmp .hang
