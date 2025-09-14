@@ -3,7 +3,9 @@
 #include <string.hpp>
 #include <types.hpp>
 
+#include "disk.hpp"
 #include "e820.hpp"
+#include "filesystem.hpp"
 #include "physical_page.hpp"
 #include "terminal.hpp"
 
@@ -39,6 +41,7 @@ struct bitmap_location {
 	bool found = false;
 	std::byte *storage_address;	   // Where there is enough space for the bitmap
 	std::uint64_t pages_required;  // How many pages are required to represent all usable memory?
+	std::size_t byte_size;		   // How many bytes large is the bitmap space?
 };
 [[nodiscard]] bitmap_location find_location_for_page_bitmap(std::span<const cos::e820_entry> regions) {
 	// How much memory can we represent? (Up to max USABLE from regions)
@@ -59,14 +62,74 @@ struct bitmap_location {
 		const auto &region = regions[i];
 		// We have to just hope this doesn't interact with any of our existing places in memory
 		// This can be made better, but it requires too much work and I want to feed my gambling addiction
-		if (region.type == cos::e820_entry_type::usable && region.length >= bytes_required) {
+		if (region.type == cos::e820_entry_type::usable && region.length >= bytes_required &&
+			region.base_address >= 0x10'0000) {
 			address = reinterpret_cast<std::byte *>(static_cast<std::uint32_t>(region.base_address));
 			found = true;
 			break;
 		}
 	}
 
-	return {.found = found, .storage_address = address, .pages_required = required_pages};
+	return {.found = found,
+			.storage_address = address,
+			.pages_required = required_pages,
+			.byte_size = static_cast<std::size_t>(bytes_required)};
+}
+
+void initialize_used_pages(cos::terminal &terminal, std::span<const cos::e820_entry> regions, cos::page_bitmap &bitmap,
+						   std::size_t max_page) {
+	// Update all of the memory regions to be used
+	for (auto i = 0; i < regions.size(); i++) {
+		const auto &region = regions[i];
+		if (region.type != cos::e820_entry_type::usable) {
+			const auto base_page_number = region.base_address >> 12;
+			const auto page_count = (region.length + cos::physical_page::size - 1) / cos::physical_page::size;
+			for (auto page_offset = 0; page_offset < page_count; page_offset++) {
+				if (base_page_number + page_offset >= max_page) {
+					break;
+				}
+				bitmap.set_page({.number = base_page_number + page_offset}, cos::physical_page_status::used);
+			}
+		}
+	}
+
+	// Initialize stack
+	const auto stack_top_ptr = 0x1FF'FFFFull;
+	const auto stack_top_page = stack_top_ptr >> 12;  // Does this work as expected?
+	const auto stack_page_count = 16ull;
+	const auto stack_bottom = stack_top_page - (stack_page_count - 1);
+	for (auto page_offset = 0; page_offset < stack_page_count; page_offset++) {
+		bitmap.set_page({.number = stack_bottom + page_offset}, cos::physical_page_status::used);
+	}
+
+	// VGA buffer data
+	bitmap.set_page({.number = 0xB8000 >> 12}, cos::physical_page_status::used);
+
+	// Memory regions / metadata
+	bitmap.set_page({.number = 0x1000 >> 12}, cos::physical_page_status::used);
+
+	// Stage2 code location
+	const auto stage2_metadata = cos::filesystem::find("stage2.bin");
+	const auto stage2_page_count = (stage2_metadata.sector_count + 3) / 4;
+	const auto stage2_start = 0x8000ull >> 12;
+	for (auto page_offset = 0; page_offset < stage2_page_count; page_offset++) {
+		bitmap.set_page({.number = stage2_start + page_offset}, cos::physical_page_status::used);
+	}
+}
+
+[[nodiscard]] std::byte *create_page_table(cos::physical_page_allocator &allocator) {
+	auto root_table_allocation = allocator.allocate_pages(1);
+
+	auto root_table = cos::page_table<cos::ptl4_entry>(reinterpret_cast<cos::ptl4_entry *>(root_table_allocation));
+	root_table.clear();
+
+	// Identity map the first 32MB
+	const auto identity_map_page_count = 32 * 256;	// 256 pages in 1MB
+	const auto identity_map_address_start = 0ull;	// Starts at 0x0
+	const auto identity_map_page_start = 0ull;		// Starts at the physical page number 0
+	pmap(root_table, allocator, identity_map_address_start, identity_map_page_start, identity_map_page_count);
+
+	return root_table_allocation;
 }
 
 extern "C" void stage2_main() {
@@ -76,14 +139,55 @@ extern "C" void stage2_main() {
 																 *reinterpret_cast<std::uint16_t *>(0x1200));
 	print_memory_regions(terminal, memory_regions);
 
-	const auto [page_bitmap_found, page_bitmap_location, page_count] = find_location_for_page_bitmap(memory_regions);
+	const auto [page_bitmap_found, page_bitmap_location, page_count, page_bitmap_size] =
+		find_location_for_page_bitmap(memory_regions);
 	if (!page_bitmap_found) {
 		// Couldn't find a location for it
 		terminal << "failed to find location for bitmap with " << cos::decimal(page_count) << " pages\n";
 		while (true);
+	} else {
+		terminal << "bitmap allocated at " << cos::hex(reinterpret_cast<std::uint32_t>(page_bitmap_location))
+				 << " total bytes for bitmap " << cos::decimal(page_bitmap_size) << " page count "
+				 << cos::decimal(page_count) << "\n";
 	}
 
-	auto page_bitmap = cos::page_bitmap();
+	auto page_bitmap = cos::page_bitmap({page_bitmap_location, page_bitmap_size});
+	initialize_used_pages(terminal, memory_regions, page_bitmap, page_count);
+	terminal << "finished writing pages\n";
+
+	const auto trampoline_file_data = cos::filesystem::find("trampoline.bin");
+	if (trampoline_file_data.sector_count == 0) {
+		terminal << "can't find trampolinein the filesystem\n";
+		while (true);
+	} else {
+		terminal << "found trampoline in the filesystem, sector " << cos::decimal(trampoline_file_data.sector_start)
+				 << "\n";
+	}
+
+	auto allocator = cos::physical_page_allocator(&page_bitmap);
+	// 4 sectors = 1 page
+	const auto trampoline_allocation = allocator.allocate_pages((trampoline_file_data.sector_count + 3) / 4);
+	if (const auto status = cos::read_from_disk(trampoline_file_data.sector_start + 1,
+												trampoline_file_data.sector_count, trampoline_allocation);
+		status != 0) {
+		terminal << "failed to read trampline into memory " << cos::hex(status) << "\n";
+		while (true);
+	} else {
+		terminal << "successfully loaded trampoline @ "
+				 << cos::hex(reinterpret_cast<std::size_t>(trampoline_allocation)) << ", "
+				 << cos::decimal(trampoline_file_data.sector_count) << " sectors read\n";
+	}
+
+	auto page_table_root = create_page_table(allocator);
+	terminal << "created page table @ " << cos::hex(reinterpret_cast<std::uint32_t>(page_table_root)) << "\n";
+
+	auto trampoline_func = (void (*)()) reinterpret_cast<void *>(trampoline_allocation);
+	asm volatile(
+		"movl %0, %%eax\n"
+		"call *%1\n"
+		:
+		: "r"(reinterpret_cast<std::uint32_t>(page_table_root)), "r"(trampoline_func)
+		: "eax");
 
 	while (true);  // hang
 }

@@ -25,7 +25,7 @@ compile: $(BUILD_DIR) $(CLEAN)
 
 run: 
 	qemu-system-x86_64 \
-		-m 128M \
+		-m 32M \
 		-machine pc \
 		-drive \
 		if=ide,media=disk,format=raw,file=$(OS_IMG) \
@@ -54,7 +54,7 @@ $(STAGE2): $(STAGE2_ENTRY) $(STAGE2_OBJS) $(STAGE2_LD)
 	i686-elf-ld -T boot/stage2/Linker.ld -m elf_i386 $(STAGE2_ENTRY) $(STAGE2_OBJS) -o $@
 
 $(TRAMPOLINE): boot/stage2/trampoline.asm
-	nasm -f elf32 boot/stage2/trampoline.asm -o $(TRAMPOLINE)
+	nasm -f bin boot/stage2/trampoline.asm -o $(TRAMPOLINE)
 
 $(KERNEL_ENTRY): kernel/_entry.asm
 	nasm -f elf32 kernel/_entry.asm -o $(KERNEL_ENTRY)

@@ -18,6 +18,8 @@ public:
 
 	[[nodiscard]] std::size_t size_bytes() const noexcept { return size() * sizeof(ViewedT); }
 
+	[[nodiscard]] ViewedT *data() const noexcept { return begin; }
+
 private:
 	ViewedT *begin;
 	ViewedT *end;
