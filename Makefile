@@ -45,7 +45,7 @@ $(BUILD_DIR)/stage2_%.o: boot/stage2/%.cpp
 	i686-elf-g++ -std=c++20 -fno-unwind-tables -fno-asynchronous-unwind-tables -fno-exceptions -fno-rtti -ffreestanding -I$(STL_DIRECTORY) -m32 -c $< -o $@
 
 $(BUILD_DIR)/kernel_%.o: kernel/%.cpp
-	i686-elf-g++ -std=c++20 -fno-unwind-tables -fno-asynchronous-unwind-tables -fno-exceptions -fno-rtti -ffreestanding -I$(STL_DIRECTORY) -m32 -c $< -o $@
+	g++ -std=c++20 -fno-unwind-tables -fno-asynchronous-unwind-tables -fno-exceptions -fno-rtti -ffreestanding -I$(STL_DIRECTORY) -m64 -c $< -o $@
 
 $(STAGE2_ENTRY): boot/stage2/entry.asm
 	nasm -f elf32 boot/stage2/entry.asm -o $(STAGE2_ENTRY)
@@ -57,10 +57,10 @@ $(TRAMPOLINE): boot/stage2/trampoline.asm
 	nasm -f bin boot/stage2/trampoline.asm -o $(TRAMPOLINE)
 
 $(KERNEL_ENTRY): kernel/_entry.asm
-	nasm -f elf32 kernel/_entry.asm -o $(KERNEL_ENTRY)
+	nasm -f elf64 kernel/_entry.asm -o $(KERNEL_ENTRY)
 
 $(KERNEL): $(KERNEL_OBJS) $(KERNEL_ENTRY)
-	i686-elf-ld -T kernel/Linker.ld -m elf_i386 $(KERNEL_ENTRY) $(KERNEL_OBJS) -o $@
+	ld -T kernel/Linker.ld $(KERNEL_ENTRY) $(KERNEL_OBJS) -o $@
 
 $(FILESYSTEM_IMAGE): $(STAGE1) $(STAGE2) $(TRAMPOLINE) $(KERNEL)
 	python fs-builder.py \

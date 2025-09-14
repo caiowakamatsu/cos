@@ -1,9 +1,8 @@
 OUTPUT_FORMAT("binary")
-ENTRY(kernel_main)
 
 SECTIONS
 {
-	. = 0xFFFF800000000000;
+	. = 0xFFFFFFFF80000000;
 	.text : { *(.text) }
 	.rodata : { *(.rodata) }
 	.data : { *(.data) }

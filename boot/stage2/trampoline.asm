@@ -29,14 +29,7 @@ entry_64:
 	; Finally... 64 bit mode
 	mov ah, '6'
 	mov [0xB8000], ah
-	hlt
 
-	mov ax, 0x10
-	mov ds, ax
-	mov es, ax
-	mov ss, ax
-	mov rcx, rcx ; make sure rcx carries over
-	mov rsp, rcx
-
-	; Jump to higher half here
+	mov rax, 0xFFFFFFFF80000000
+  jmp rax 
 

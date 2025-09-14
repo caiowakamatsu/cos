@@ -117,7 +117,10 @@ void initialize_used_pages(cos::terminal &terminal, std::span<const cos::e820_en
 	}
 }
 
-[[nodiscard]] std::byte *create_page_table(cos::physical_page_allocator &allocator) {
+[[nodiscard]] std::byte *create_page_table(cos::physical_page_allocator &allocator,
+										   std::uint32_t kernel_physical_address, std::size_t kernel_page_count,
+										   std::uint32_t kernel_stack_physical_address,
+										   std::size_t kernel_stack_page_count) {
 	auto root_table_allocation = allocator.allocate_pages(1);
 
 	auto root_table = cos::page_table<cos::ptl4_entry>(reinterpret_cast<cos::ptl4_entry *>(root_table_allocation));
@@ -128,6 +131,13 @@ void initialize_used_pages(cos::terminal &terminal, std::span<const cos::e820_en
 	const auto identity_map_address_start = 0ull;	// Starts at 0x0
 	const auto identity_map_page_start = 0ull;		// Starts at the physical page number 0
 	pmap(root_table, allocator, identity_map_address_start, identity_map_page_start, identity_map_page_count);
+
+	// Map kernel to higher-half
+	const auto kernel_virt_base = 0xFFFFFFFF80000000ull;  // Higher-half kernel base
+	pmap(root_table, allocator, kernel_virt_base, kernel_physical_address / 4096, kernel_page_count);
+
+	const auto stack_virt_base = 0xFFFFFFFF7FFF0000ull;	 // Stack base (64KB below kernel)
+	pmap(root_table, allocator, stack_virt_base, kernel_stack_physical_address / 4096, kernel_stack_page_count);
 
 	return root_table_allocation;
 }
@@ -178,7 +188,31 @@ extern "C" void stage2_main() {
 				 << cos::decimal(trampoline_file_data.sector_count) << " sectors read\n";
 	}
 
-	auto page_table_root = create_page_table(allocator);
+	// Load kernel code
+	const auto kernel_file_data = cos::filesystem::find("kernel.bin");
+	if (kernel_file_data.sector_count == 0) {
+		terminal << "can't find kernel in the filesystem\n";
+		while (true);
+	} else {
+		terminal << "found kernel in the filesystem, sector " << cos::decimal(kernel_file_data.sector_start) << "\n";
+	}
+
+	const auto kernel_allocation = allocator.allocate_pages((kernel_file_data.sector_count + 3) / 4);
+	if (const auto status =
+			cos::read_from_disk(kernel_file_data.sector_start + 1, kernel_file_data.sector_count, kernel_allocation);
+		status != 0) {
+		terminal << "failed to read kernel into memory " << cos::hex(status) << "\n";
+		while (true);
+	} else {
+		terminal << "successfully loaded kernel @ " << cos::hex(reinterpret_cast<std::size_t>(kernel_allocation))
+				 << ", " << cos::decimal(kernel_file_data.sector_count) << " sectors read\n";
+	}
+	const auto kernel_stack_page_count = 16;
+	const auto kernel_stack_allocation = allocator.allocate_pages(kernel_stack_page_count);
+
+	auto page_table_root = create_page_table(
+		allocator, reinterpret_cast<std::uint32_t>(kernel_allocation), (kernel_file_data.sector_count + 3) / 4,
+		reinterpret_cast<std::uint32_t>(kernel_stack_allocation), kernel_stack_page_count);
 	terminal << "created page table @ " << cos::hex(reinterpret_cast<std::uint32_t>(page_table_root)) << "\n";
 
 	auto trampoline_func = (void (*)()) reinterpret_cast<void *>(trampoline_allocation);
