@@ -11,8 +11,17 @@ ASM_ELF32 := -f elf32
 ASM_ELF64 := -f elf64
 
 CPP_STL_DIR = stl
+CPP_COMMON_DIR = common
 
-CPP_FLAGS := -std=c++20 -fno-unwind-tables -fno-asynchronous-unwind-tables -fno-exceptions -fno-rtti -ffreestanding -c -I$(CPP_STL_DIR)
+CPP_FLAGS := -std=c++20 \
+						 -fno-unwind-tables \
+						 -fno-asynchronous-unwind-tables \
+						 -fno-exceptions \
+						 -fno-rtti \
+						 -ffreestanding \
+						 -c \
+						 -I$(CPP_STL_DIR) \
+						 -I$(CPP_COMMON_DIR)
 CPP32_FLAGS := $(CPP_FLAGS) -m32 -DARCH=COS_32
 CPP64_FLAGS := $(CPP_FLAGS) -m64 -DARCH=COS_64
 
