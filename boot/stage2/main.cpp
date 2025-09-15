@@ -1,3 +1,4 @@
+#include <array.hpp>
 #include <memory.hpp>
 #include <span.hpp>
 #include <string.hpp>
