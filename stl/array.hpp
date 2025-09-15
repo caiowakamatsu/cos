@@ -11,6 +11,9 @@ private:
 	T data[Count] = {};
 
 public:
+	[[nodiscard]] T& operator[](std::size_t index) noexcept { return data[index]; }
+
+	[[nodiscard]] const T& operator[](std::size_t index) const noexcept { return data[index]; }
 };
 
 }  // namespace std

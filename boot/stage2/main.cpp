@@ -4,6 +4,7 @@
 #include <string.hpp>
 #include <types.hpp>
 
+#include "boot_info.hpp"
 #include "disk.hpp"
 #include "e820.hpp"
 #include "filesystem.hpp"
@@ -221,13 +222,27 @@ extern "C" void stage2_main() {
 		reinterpret_cast<std::uint32_t>(kernel_stack_allocation), kernel_stack_page_count);
 	terminal << "created page table @ " << cos::hex(reinterpret_cast<std::uint32_t>(page_table_root)) << "\n";
 
+	// Prepare boot info
+	auto boot_info_alloc = allocator.allocate_memory(sizeof(cos::boot_info));
+	auto boot_info = reinterpret_cast<cos::boot_info *>(boot_info_alloc);
+	boot_info->memory_region_count = memory_regions.size();
+	for (std::uint64_t i = 0; i < boot_info->memory_region_count; i++) {
+		boot_info->memory_regions[i] = memory_regions[i];
+	}
+
+	const auto bitmap_address_uint = reinterpret_cast<std::uint32_t>(page_bitmap_location);
+	boot_info->page_bitmap_start = static_cast<std::uint64_t>(bitmap_address_uint);
+	boot_info->page_bitmap_count = static_cast<std::uint64_t>(page_count);
+
 	auto trampoline_func = (void (*)()) reinterpret_cast<void *>(trampoline_allocation);
 	asm volatile(
 		"movl %0, %%eax\n"
-		"call *%1\n"
+		"movl %1, %%ebx\n"
+		"call *%2\n"
 		:
-		: "r"(reinterpret_cast<std::uint32_t>(page_table_root)), "r"(trampoline_func)
-		: "eax");
+		: "r"(reinterpret_cast<std::uint32_t>(page_table_root)), "r"(reinterpret_cast<std::uint32_t>(boot_info_alloc)),
+		  "r"(trampoline_func)
+		: "eax", "ebx");
 
 	while (true);  // hang
 }
