@@ -14,7 +14,7 @@ using int32_t = signed int;
 using int64_t = signed long long;
 
 // Maybe a ifdef 32 bit mode / 64 bit mode switch?
-#ifdef COS_STL_64B
+#ifdef ARCH_64
 using size_t = uint64_t;
 #else
 using size_t = uint32_t;

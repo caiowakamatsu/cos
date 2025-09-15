@@ -151,7 +151,7 @@ public:
 			const auto table_allocation_ptr = allocator.allocate_pages(1);
 			entries[index].present = 1;
 			entries[index].read_write = 1;
-			entries[index].raw_page_number = reinterpret_cast<std::uint32_t>(table_allocation_ptr) >> 12;
+			entries[index].raw_page_number = reinterpret_cast<std::size_t>(table_allocation_ptr) >> 12;
 
 			const auto table_ptr = reinterpret_cast<typename PageEntryT::next_entry*>(table_allocation_ptr);
 			auto table = page_table<typename PageEntryT::next_entry>(table_ptr);

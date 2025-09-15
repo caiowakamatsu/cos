@@ -1,7 +1,5 @@
 #include "disk.hpp"
 
-#include "types.hpp"
-
 namespace port {
 // port io bullshittery
 void write_byte(std::uint16_t port, std::uint8_t value) { asm volatile("outb %0, %1" ::"a"(value), "Nd"(port)); }
@@ -20,35 +18,27 @@ void write_short(std::uint16_t port, std::uint16_t value) { asm volatile("outw %
 	return ret;
 }
 
-enum : std::uint16_t {
-	ATA_PRIMARY_IO = 0x1F0,
-	ATA_PRIMARY_CTL = 0x3F6,
-	ATA_SECONDARY_IO = 0x170,
-	ATA_SECONDARY_CTL = 0x376,
-};
+constexpr std::uint16_t ATA_PRIMARY_IO = 0x1F0;
+constexpr std::uint16_t ATA_PRIMARY_CTL = 0x3F6;
+constexpr std::uint16_t ATA_SECONDARY_IO = 0x170;
+constexpr std::uint16_t ATA_SECONDARY_CTL = 0x376;
 
-enum : std::uint8_t {
-	ATA_REG_DATA = 0,
-	ATA_REG_ERROR_FEAT = 1,
-	ATA_REG_SECCNT = 2,
-	ATA_REG_LBA0 = 3,
-	ATA_REG_LBA1 = 4,
-	ATA_REG_LBA2 = 5,
-	ATA_REG_DRIVE_HEAD = 6,
-	ATA_REG_STATUS_CMD = 7,
-};
+constexpr std::uint8_t ATA_REG_DATA = 0;
+constexpr std::uint8_t ATA_REG_ERROR_FEAT = 1;
+constexpr std::uint8_t ATA_REG_SECCNT = 2;
+constexpr std::uint8_t ATA_REG_LBA0 = 3;
+constexpr std::uint8_t ATA_REG_LBA1 = 4;
+constexpr std::uint8_t ATA_REG_LBA2 = 5;
+constexpr std::uint8_t ATA_REG_DRIVE_HEAD = 6;
+constexpr std::uint8_t ATA_REG_STATUS_CMD = 7;
 
-enum : std::uint8_t {
-	ATA_SR_BSY = 0x80,
-	ATA_SR_DRDY = 0x40,
-	ATA_SR_DF = 0x20,
-	ATA_SR_DRQ = 0x08,
-	ATA_SR_ERR = 0x01,
-};
+constexpr std::uint8_t ATA_SR_BSY = 0x80;
+constexpr std::uint8_t ATA_SR_DRDY = 0x40;
+constexpr std::uint8_t ATA_SR_DF = 0x20;
+constexpr std::uint8_t ATA_SR_DRQ = 0x08;
+constexpr std::uint8_t ATA_SR_ERR = 0x01;
 
-enum : std::uint8_t {
-	ATA_CMD_READ_SECTORS = 0x20,
-};
+constexpr std::uint8_t ATA_CMD_READ_SECTORS = 0x20;
 
 }  // namespace port
 
