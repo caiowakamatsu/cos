@@ -139,6 +139,11 @@ void initialize_used_pages(cos::terminal &terminal, std::span<const cos::e820_en
 	const auto stack_virt_base = 0xFFFFFFFF7FFF0000ull;	 // Stack base (64KB below kernel)
 	pmap(root_table, allocator, stack_virt_base, kernel_stack_physical_address / 4096, kernel_stack_page_count);
 
+	auto recursive_entry = root_table[511];
+	recursive_entry.present = 1;
+	recursive_entry.read_write = 1;
+	recursive_entry.raw_page_number = reinterpret_cast<std::uint32_t>(root_table_allocation) >> 12;
+
 	return root_table_allocation;
 }
 
