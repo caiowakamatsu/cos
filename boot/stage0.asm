@@ -32,7 +32,7 @@ print_halted:
 stage1_identifier db "stage1.bin", 0
 
 halted_msg:
-	dq "HALTED" 0
+	dq "HALTED", 0
 
 hang:
 		call print_halted

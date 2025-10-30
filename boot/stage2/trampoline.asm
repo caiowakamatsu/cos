@@ -26,7 +26,7 @@ trampoline_start:
 
 	jmp 0x18:entry_64
 
-[bits 64]:
+[bits 64]
 entry_64:
 	; Finally... 64 bit mode
 	mov ah, '6'
