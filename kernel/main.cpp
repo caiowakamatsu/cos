@@ -1,6 +1,7 @@
 #include <boot_info.hpp>
 #include <physical_page.hpp>
 
+#include "asm/cr3.hpp"
 #include "terminal.hpp"
 
 extern "C" void k_main(cos::boot_info* boot_info) {
@@ -12,12 +13,8 @@ extern "C" void k_main(cos::boot_info* boot_info) {
 	terminal << "Page bitmap starts at: " << cos::hex(boot_info->page_bitmap_start)
 			 << " count: " << cos::decimal(boot_info->page_bitmap_count) << "\n";
 
-	volatile std::uint64_t cr3;
-	asm volatile("mov %%cr3, %%rax" : "=a"(cr3));
-	terminal << "CR3=" << cos::hex(cr3) << "\n";
-
-	volatile auto* phys = reinterpret_cast<volatile std::uint64_t*>(cr3);
-	terminal << cos::hex(phys[510]) << "\n";
+	const auto cr3_val = kernel::intrinsic::cr3();
+	terminal << "CR3=" << cos::hex(cr3_val) << "\n";
 
 	const std::uint64_t slot = 510;
 	const std::uint64_t sign_extension = 0xFFFFull << 48;
@@ -28,7 +25,6 @@ extern "C" void k_main(cos::boot_info* boot_info) {
 
 	const volatile auto ptr = reinterpret_cast<std::uint64_t*>(recursive_addr);
 
-	// WHY DOES THIS BREAK STUFF?????
 	auto val = ptr[510];
 	terminal << cos::hex(val) << "\n";
 }

@@ -134,15 +134,15 @@ $(STAGE2): $(STAGE2_STUB) $(STAGE2_OBJS) $(OS_COMMON32) | $(STAGE2_BUILD_DIR)
 	$(LD32) -T boot/stage2/Linker.ld -m elf_i386 $(STAGE2_STUB) $(STAGE2_OBJS) $(OS_COMMON32) -o $@
 
 # Kernel
-KERNEL_CPP := $(wildcard kernel/*.cpp)
+KERNEL_CPP := $(shell find kernel -type f -name "*.cpp")
 KERNEL_OBJS := $(patsubst kernel/%.cpp,$(KERNEL_BUILD_DIR)/%.o,$(KERNEL_CPP))
 
 $(KERNEL_STUB): kernel/_entry.asm | $(KERNEL_BUILD_DIR)
 	$(ASM) $(ASM_ELF64) $< -o $@
 
-$(KERNEL_BUILD_DIR)/%.o: kernel/%.cpp | $(KERNEL_BUILD_DIR)
-	$(CPP64) $(CPP64_FLAGS) -S -masm=intel -g -fverbose-asm $< -o $(KERNEL_BUILD_DIR)/$*.asm
-	$(CPP64) $(CPP64_FLAGS) $< -o $@
+$(KERNEL_BUILD_DIR)/%.o: kernel/%.cpp
+	@mkdir -p $(dir $@)
+	$(CPP64) $(CPP64_FLAGS) -c $< -o $@
 
 $(KERNEL): $(KERNEL_STUB) $(KERNEL_OBJS) $(OS_COMMON64) | $(KERNEL_BUILD_DIR)
 	$(LD64) -T kernel/Linker.ld $(KERNEL_STUB) $(KERNEL_OBJS) $(OS_COMMON64) -o $@
