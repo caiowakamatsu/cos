@@ -1,10 +1,10 @@
 ASM := nasm
 CPP32 := i686-elf-g++
-CPP64 := g++
+CPP64 := x86_64-elf-g++
 LD32 := i686-elf-ld
-LD64 := ld
+LD64 := x86_64-elf-ld
 AR32 := i686-elf-ar
-AR64 := ar
+AR64 := x86_64-elf-ar
 
 ASM_BIN := -f bin
 ASM_ELF32 := -f elf32
@@ -14,16 +14,22 @@ CPP_STL_DIR = stl
 CPP_COMMON_DIR = common
 
 CPP_FLAGS := -std=c++20 \
-						 -fno-unwind-tables \
-						 -fno-asynchronous-unwind-tables \
-						 -fno-exceptions \
-						 -fno-rtti \
-						 -ffreestanding \
-						 -c \
-						 -I$(CPP_STL_DIR) \
-						 -I$(CPP_COMMON_DIR)
+	-ffreestanding \
+	-fno-exceptions \
+	-fno-rtti \
+	-fno-stack-protector \
+	-fno-unwind-tables \
+	-fno-asynchronous-unwind-tables \
+	-nostdlib \
+	-nostartfiles \
+	-c \
+	-I$(CPP_STL_DIR) \
+	-I$(CPP_COMMON_DIR)
+
+#-Wall -Wextra -Werror
+
 CPP32_FLAGS := $(CPP_FLAGS) -m32 -DARCH_32
-CPP64_FLAGS := $(CPP_FLAGS) -m64 -DARCH_64
+CPP64_FLAGS := $(CPP_FLAGS) -m64 -mcmodel=kernel -mno-red-zone -DARCH_64
 
 BUILD_DIR := build
 STAGE2_BUILD_DIR := $(BUILD_DIR)/stage2
@@ -135,6 +141,7 @@ $(KERNEL_STUB): kernel/_entry.asm | $(KERNEL_BUILD_DIR)
 	$(ASM) $(ASM_ELF64) $< -o $@
 
 $(KERNEL_BUILD_DIR)/%.o: kernel/%.cpp | $(KERNEL_BUILD_DIR)
+	$(CPP64) $(CPP64_FLAGS) -S -masm=intel -g -fverbose-asm $< -o $(KERNEL_BUILD_DIR)/$*.asm
 	$(CPP64) $(CPP64_FLAGS) $< -o $@
 
 $(KERNEL): $(KERNEL_STUB) $(KERNEL_OBJS) $(OS_COMMON64) | $(KERNEL_BUILD_DIR)

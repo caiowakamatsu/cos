@@ -40,7 +40,7 @@ load_e820:
 	; Loop again
 	jmp .loop
 
-.end
+.end:
 
 	pop bp
 	pop sp

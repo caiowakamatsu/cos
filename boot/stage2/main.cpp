@@ -11,10 +11,10 @@
 #include "physical_page.hpp"
 #include "terminal.hpp"
 
-void print_memory_regions(cos::terminal &terminal, std::span<const cos::e820_entry> regions) {
+void print_memory_regions(cos::terminal& terminal, std::span<const cos::e820_entry> regions) {
 	terminal << "loaded total of " << cos::decimal(regions.size()) << " memory regions from e820\n";
 	for (auto i = 0; i < regions.size(); i++) {
-		const auto &entry = regions[i];
+		const auto& entry = regions[i];
 		terminal << "A: " << cos::hex(entry.base_address) << " L " << cos::memory_size(entry.length);
 
 		terminal << "(";
@@ -41,7 +41,7 @@ void print_memory_regions(cos::terminal &terminal, std::span<const cos::e820_ent
 
 struct bitmap_location {
 	bool found = false;
-	std::byte *storage_address;	   // Where there is enough space for the bitmap
+	std::byte* storage_address;	   // Where there is enough space for the bitmap
 	std::uint64_t pages_required;  // How many pages are required to represent all usable memory?
 	std::size_t byte_size;		   // How many bytes large is the bitmap space?
 };
@@ -59,14 +59,14 @@ struct bitmap_location {
 	const auto bytes_required = (required_pages + 7) / 8;  // Each page is 1 bit
 
 	auto found = false;
-	std::byte *address = nullptr;
+	std::byte* address = nullptr;
 	for (auto i = 0; i < regions.size(); i++) {
-		const auto &region = regions[i];
+		const auto& region = regions[i];
 		// We have to just hope this doesn't interact with any of our existing places in memory
 		// This can be made better, but it requires too much work and I want to feed my gambling addiction
 		if (region.type == cos::e820_entry_type::usable && region.length >= bytes_required &&
 			region.base_address >= 0x10'0000) {
-			address = reinterpret_cast<std::byte *>(static_cast<std::uint32_t>(region.base_address));
+			address = reinterpret_cast<std::byte*>(static_cast<std::uint32_t>(region.base_address));
 			found = true;
 			break;
 		}
@@ -78,11 +78,11 @@ struct bitmap_location {
 			.byte_size = static_cast<std::size_t>(bytes_required)};
 }
 
-void initialize_used_pages(cos::terminal &terminal, std::span<const cos::e820_entry> regions, cos::page_bitmap &bitmap,
+void initialize_used_pages(cos::terminal& terminal, std::span<const cos::e820_entry> regions, cos::page_bitmap& bitmap,
 						   std::size_t max_page) {
 	// Update all of the memory regions to be used
 	for (auto i = 0; i < regions.size(); i++) {
-		const auto &region = regions[i];
+		const auto& region = regions[i];
 		if (region.type != cos::e820_entry_type::usable) {
 			const auto base_page_number = region.base_address >> 12;
 			const auto page_count = (region.length + cos::physical_page::size - 1) / cos::physical_page::size;
@@ -119,13 +119,13 @@ void initialize_used_pages(cos::terminal &terminal, std::span<const cos::e820_en
 	}
 }
 
-[[nodiscard]] std::byte *create_page_table(cos::physical_page_allocator &allocator,
+[[nodiscard]] std::byte* create_page_table(cos::physical_page_allocator& allocator,
 										   std::uint32_t kernel_physical_address, std::size_t kernel_page_count,
 										   std::uint32_t kernel_stack_physical_address,
 										   std::size_t kernel_stack_page_count) {
 	auto root_table_allocation = allocator.allocate_pages(1);
 
-	auto root_table = cos::page_table<cos::ptl4_entry>(reinterpret_cast<cos::ptl4_entry *>(root_table_allocation));
+	auto root_table = cos::page_table<cos::ptl4_entry>(reinterpret_cast<cos::ptl4_entry*>(root_table_allocation));
 	root_table.clear();
 
 	// Identity map the first 32MB
@@ -141,7 +141,7 @@ void initialize_used_pages(cos::terminal &terminal, std::span<const cos::e820_en
 	const auto stack_virt_base = 0xFFFFFFFF7FFF0000ull;	 // Stack base (64KB below kernel)
 	pmap(root_table, allocator, stack_virt_base, kernel_stack_physical_address / 4096, kernel_stack_page_count);
 
-	auto recursive_entry = root_table[511];
+	auto& recursive_entry = root_table[510];
 	recursive_entry.present = 1;
 	recursive_entry.read_write = 1;
 	recursive_entry.raw_page_number = reinterpret_cast<std::uint32_t>(root_table_allocation) >> 12;
@@ -150,10 +150,10 @@ void initialize_used_pages(cos::terminal &terminal, std::span<const cos::e820_en
 }
 
 extern "C" void stage2_main() {
-	auto terminal = cos::terminal(reinterpret_cast<char *>(0xB8000));
+	auto terminal = cos::terminal(reinterpret_cast<char*>(0xB8000));
 
-	const auto memory_regions = std::span<const cos::e820_entry>(reinterpret_cast<cos::e820_entry *>(0x1210),
-																 *reinterpret_cast<std::uint16_t *>(0x1200));
+	const auto memory_regions = std::span<const cos::e820_entry>(reinterpret_cast<cos::e820_entry*>(0x1210),
+																 *reinterpret_cast<std::uint16_t*>(0x1200));
 	print_memory_regions(terminal, memory_regions);
 
 	const auto [page_bitmap_found, page_bitmap_location, page_count, page_bitmap_size] =
@@ -217,14 +217,14 @@ extern "C" void stage2_main() {
 	const auto kernel_stack_page_count = 16;
 	const auto kernel_stack_allocation = allocator.allocate_pages(kernel_stack_page_count);
 
-	auto page_table_root = create_page_table(
+	const auto page_table_root = create_page_table(
 		allocator, reinterpret_cast<std::uint32_t>(kernel_allocation), (kernel_file_data.sector_count + 3) / 4,
 		reinterpret_cast<std::uint32_t>(kernel_stack_allocation), kernel_stack_page_count);
 	terminal << "created page table @ " << cos::hex(reinterpret_cast<std::uint32_t>(page_table_root)) << "\n";
 
 	// Prepare boot info
 	auto boot_info_alloc = allocator.allocate_memory(sizeof(cos::boot_info));
-	auto boot_info = reinterpret_cast<cos::boot_info *>(boot_info_alloc);
+	auto boot_info = reinterpret_cast<cos::boot_info*>(boot_info_alloc);
 	boot_info->memory_region_count = memory_regions.size();
 	for (std::uint64_t i = 0; i < boot_info->memory_region_count; i++) {
 		boot_info->memory_regions[i] = memory_regions[i];
@@ -234,7 +234,7 @@ extern "C" void stage2_main() {
 	boot_info->page_bitmap_start = static_cast<std::uint64_t>(bitmap_address_uint);
 	boot_info->page_bitmap_count = static_cast<std::uint64_t>(page_count);
 
-	auto trampoline_func = (void (*)()) reinterpret_cast<void *>(trampoline_allocation);
+	auto trampoline_func = (void (*)()) reinterpret_cast<void*>(trampoline_allocation);
 	asm volatile(
 		"movl %0, %%eax\n"
 		"movl %1, %%ebx\n"

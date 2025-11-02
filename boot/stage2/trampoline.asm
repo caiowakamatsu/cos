@@ -1,12 +1,5 @@
 [bits 32]
-
-; EAX = page table location
-; EBX = boot info location
 trampoline_start:
-	; Last time using raw addresses, god speed to me 
-	;mov ah, '8' ; before pain
-	;mov [0xB8000], al
-
 	mov edx, eax
 
 	mov eax, cr4
