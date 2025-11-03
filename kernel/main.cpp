@@ -1,7 +1,9 @@
+#include <bits.hpp>
 #include <boot_info.hpp>
-#include <physical_page.hpp>
+#include <memory.hpp>
+#include <span.hpp>
 
-#include "asm/cr3.hpp"
+#include "memory/page_table.hpp"
 #include "terminal.hpp"
 
 extern "C" void k_main(cos::boot_info* boot_info) {
@@ -13,9 +15,6 @@ extern "C" void k_main(cos::boot_info* boot_info) {
 	terminal << "Page bitmap starts at: " << cos::hex(boot_info->page_bitmap_start)
 			 << " count: " << cos::decimal(boot_info->page_bitmap_count) << "\n";
 
-	const auto cr3_val = kernel::intrinsic::cr3();
-	terminal << "CR3=" << cos::hex(cr3_val) << "\n";
-
 	const std::uint64_t slot = 510;
 	const std::uint64_t sign_extension = 0xFFFFull << 48;
 
@@ -23,8 +22,15 @@ extern "C" void k_main(cos::boot_info* boot_info) {
 	terminal << cos::hex(recursive_addr) << "\n";
 	terminal << cos::hex(sign_extension) << "\n";
 
-	const volatile auto ptr = reinterpret_cast<std::uint64_t*>(recursive_addr);
+	using namespace kernel::memory;
 
-	auto val = ptr[510];
-	terminal << cos::hex(val) << "\n";
+	auto highest_table = std::span<ptl4_entry>(reinterpret_cast<ptl4_entry*>(recursive_addr), 512);
+
+	for (int i = 0; i < 512; i++) {
+		const auto raw_value = std::bit_cast<std::uint64_t>(highest_table[i]);
+		const auto is_present = bool(highest_table[i].present);
+		if (is_present) {
+			terminal << cos::decimal(i) << "is present: " << cos::hex(raw_value) << "\n";
+		}
+	}
 }
