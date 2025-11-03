@@ -22,15 +22,22 @@ extern "C" void k_main(cos::boot_info* boot_info) {
 	terminal << cos::hex(recursive_addr) << "\n";
 	terminal << cos::hex(sign_extension) << "\n";
 
-	using namespace kernel::memory;
-
-	auto highest_table = std::span<ptl4_entry>(reinterpret_cast<ptl4_entry*>(recursive_addr), 512);
+	const auto highest_table = kernel::memory::traverse_page_table();
 
 	for (int i = 0; i < 512; i++) {
 		const auto raw_value = std::bit_cast<std::uint64_t>(highest_table[i]);
 		const auto is_present = bool(highest_table[i].present);
 		if (is_present) {
 			terminal << cos::decimal(i) << "is present: " << cos::hex(raw_value) << "\n";
+
+			const auto table3 = kernel::memory::traverse_page_table(i);
+			for (int j = 0; j < 512; j++) {
+				const auto raw_value_3 = std::bit_cast<std::uint64_t>(table3[j]);
+				if (table3[j].present) {
+					terminal << cos::decimal(i) << "is present (root:" << cos::decimal(i) << ")"
+							 << cos::hex(raw_value_3) << "\n";
+				}
+			}
 		}
 	}
 }

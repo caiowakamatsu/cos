@@ -2,6 +2,7 @@
 #define KERNEL_MEMORY_PAGE_TABLE_HPP
 
 #include <array.hpp>
+#include <span.hpp>
 #include <type_traits.hpp>
 #include <types.hpp>
 
@@ -75,6 +76,15 @@ struct ptl4_entry {
 	std::uint64_t no_execute : 1 = 0;
 };
 
+// Uses the recursive mapping to get the root table
+[[nodiscard]] std::span<ptl4_entry> traverse_page_table();
+
+[[nodiscard]] std::span<ptl3_entry> traverse_page_table(std::uint16_t ptl4_index);
+
+[[nodiscard]] std::span<ptl2_entry> traverse_page_table(std::uint16_t ptl4_index, std::uint16_t ptl3_index);
+
+[[nodiscard]] std::span<ptl1_entry> traverse_page_table(std::uint16_t ptl4_index, std::uint16_t ptl3_index,
+														std::uint16_t ptl2_index);
 }  // namespace kernel::memory
 
 #endif
