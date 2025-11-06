@@ -25,6 +25,6 @@ entry_64:
 	mov ah, '6'
 	mov [0xB8000], ah
 
-	mov rax, 0xFFFFFFFF80000000
+	mov rax, 0xFFFFFF0000000000
   jmp rax 
 

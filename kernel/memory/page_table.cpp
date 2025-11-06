@@ -3,7 +3,7 @@
 namespace {
 using namespace kernel::memory;
 
-constexpr auto recursive_slot_index = std::uint64_t(510);
+constexpr auto recursive_slot_index = std::uint64_t(511);
 
 [[nodiscard]] std::uint64_t create_traversable_pointer(std::uint64_t index_0, std::uint64_t index_1,
 													   std::uint64_t index_2, std::uint64_t index_3) {

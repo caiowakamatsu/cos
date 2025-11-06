@@ -119,7 +119,9 @@ void initialize_used_pages(cos::terminal& terminal, std::span<const cos::e820_en
 	}
 }
 
-[[nodiscard]] std::byte* create_page_table(cos::physical_page_allocator& allocator,
+[[nodiscard]] std::uint64_t create_va(std::uint64_t pml4_index) { return (pml4_index << 39) | (0xFFFFull << 48); }
+
+[[nodiscard]] std::byte* create_page_table(cos::terminal& terminal, cos::physical_page_allocator& allocator,
 										   std::uint32_t kernel_physical_address, std::size_t kernel_page_count,
 										   std::uint32_t kernel_stack_physical_address,
 										   std::size_t kernel_stack_page_count) {
@@ -134,14 +136,16 @@ void initialize_used_pages(cos::terminal& terminal, std::span<const cos::e820_en
 	const auto identity_map_page_start = 0ull;		// Starts at the physical page number 0
 	pmap(root_table, allocator, identity_map_address_start, identity_map_page_start, identity_map_page_count);
 
-	// Map kernel to higher-half
-	const auto kernel_virt_base = 0xFFFFFFFF80000000ull;  // Higher-half kernel base
-	pmap(root_table, allocator, kernel_virt_base, kernel_physical_address / 4096, kernel_page_count);
+	const auto kernel_stack_address = create_va(509);
+	terminal << "mapping kernel stack to: " << cos::hex(kernel_stack_address) << "\n";
+	terminal << "page count: " << cos::decimal(kernel_stack_page_count) << "\n";
+	pmap(root_table, allocator, kernel_stack_address, kernel_stack_physical_address / 4096, kernel_stack_page_count);
 
-	const auto stack_virt_base = 0xFFFFFFFF7FFF0000ull;	 // Stack base (64KB below kernel)
-	pmap(root_table, allocator, stack_virt_base, kernel_stack_physical_address / 4096, kernel_stack_page_count);
+	const auto kernel_code_address = create_va(510);
+	terminal << "mapping kernel code to : " << cos::hex(kernel_code_address) << "\n";
+	pmap(root_table, allocator, kernel_code_address, kernel_physical_address / 4096, kernel_page_count);
 
-	auto& recursive_entry = root_table[510];
+	auto& recursive_entry = root_table[511];
 	recursive_entry.present = 1;
 	recursive_entry.read_write = 1;
 	recursive_entry.raw_page_number = reinterpret_cast<std::uint32_t>(root_table_allocation) >> 12;
@@ -217,9 +221,10 @@ extern "C" void stage2_main() {
 	const auto kernel_stack_page_count = 16;
 	const auto kernel_stack_allocation = allocator.allocate_pages(kernel_stack_page_count);
 
-	const auto page_table_root = create_page_table(
-		allocator, reinterpret_cast<std::uint32_t>(kernel_allocation), (kernel_file_data.sector_count + 3) / 4,
-		reinterpret_cast<std::uint32_t>(kernel_stack_allocation), kernel_stack_page_count);
+	const auto page_table_root =
+		create_page_table(terminal, allocator, reinterpret_cast<std::uint32_t>(kernel_allocation),
+						  (kernel_file_data.sector_count + 3) / 4,
+						  reinterpret_cast<std::uint32_t>(kernel_stack_allocation), kernel_stack_page_count);
 	terminal << "created page table @ " << cos::hex(reinterpret_cast<std::uint32_t>(page_table_root)) << "\n";
 
 	// Prepare boot info

@@ -15,13 +15,6 @@ extern "C" void k_main(cos::boot_info* boot_info) {
 	terminal << "Page bitmap starts at: " << cos::hex(boot_info->page_bitmap_start)
 			 << " count: " << cos::decimal(boot_info->page_bitmap_count) << "\n";
 
-	const std::uint64_t slot = 510;
-	const std::uint64_t sign_extension = 0xFFFFull << 48;
-
-	const std::uint64_t recursive_addr = sign_extension | (slot << 39) | (slot << 30) | (slot << 21) | (slot << 12);
-	terminal << cos::hex(recursive_addr) << "\n";
-	terminal << cos::hex(sign_extension) << "\n";
-
 	const auto highest_table = kernel::memory::traverse_page_table();
 
 	for (int i = 0; i < 512; i++) {

@@ -29,7 +29,7 @@ CPP_FLAGS := -std=c++20 \
 #-Wall -Wextra -Werror
 
 CPP32_FLAGS := $(CPP_FLAGS) -m32 -DARCH_32
-CPP64_FLAGS := $(CPP_FLAGS) -m64 -mcmodel=kernel -mno-red-zone -DARCH_64
+CPP64_FLAGS := $(CPP_FLAGS) -m64 -mcmodel=large -mno-red-zone -DARCH_64
 
 BUILD_DIR := build
 STAGE2_BUILD_DIR := $(BUILD_DIR)/stage2
